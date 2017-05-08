@@ -127,7 +127,7 @@ public:
      */
     virtual void debug(bool dbg);
 
-private:
+protected:
     int _cmd(int cmd, int arg);
     int _cmdx(int cmd, int arg);
     int _cmd8();
