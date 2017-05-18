@@ -531,7 +531,8 @@ The above figure shows the K64F with the v1.0.0 CI test shield fitted. Note:
 
 The above figure shows how to connect the NUCLEO_F429ZI with the v1.0.0 CI test shield. Note:
 
-- To get the SD Card to work with this platform the CI test shield cannot be connected directly to this board, instead follow the instruction above.
+- To get the SD Card to work with this platform the CI test shield cannot be connected directly to this board, instead follow the instructions above.
+- any SD-card adapter will work as long as you connect all the relevant pins (MOSI, MISO, SCLK, CS, 3.3V and GND) as illustrated in figure 3.
 - The SDCard is fully inserted into the slot and overhangs the PCB by ~1mm.  
 
 # SDBlockDevice Example Application 
