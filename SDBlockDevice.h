@@ -28,6 +28,15 @@
 #include "BlockDevice.h"
 #include "mbed.h"
 
+/* Fake Mutex object that'll be used if the RTOS is not being compiled */
+#ifndef MBED_CONF_RTOS_PRESENT
+class Mutex {
+public:
+    void lock() {}
+    void unlock() {}
+};
+#endif // #ifndef MBED_CONF_RTOS_PRESENT
+
 
 /** Access an SD Card using SPI
  *
