@@ -167,6 +167,24 @@
             "SPI_MISO": "p6",
             "SPI_CLK": "p7",
             "SPI_CS": "p8"
+        },
+        "MTB_ADV_WISE_1530": {
+            "SPI_MOSI": "NC",
+            "SPI_MISO": "NC",
+            "SPI_CLK":  "NC",
+            "SPI_CS":   "NC"
+        },
+        "MTB_MXCHIP_EMW3166": {
+            "SPI_MOSI": "NC",
+            "SPI_MISO": "NC",
+            "SPI_CLK":  "NC",
+            "SPI_CS":   "NC"
+        },
+        "MTB_USI_WM_BN_BM_22": {
+            "SPI_MOSI": "NC",
+            "SPI_MISO": "NC",
+            "SPI_CLK":  "NC",
+            "SPI_CS":   "NC"
         }
     }
 }
