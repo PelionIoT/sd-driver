@@ -127,10 +127,10 @@
             "SPI_CLK": "D13"
         },
         "MTB_UBLOX_ODIN_W2": {
-            "SPI_CS": "PG_4",
-            "SPI_MOSI": "PE_14",
-            "SPI_MISO": "PE_13",
-            "SPI_CLK": "PE_12"
+            "SPI_CS": "NC",
+            "SPI_MOSI": "NC",
+            "SPI_MISO": "NC",
+            "SPI_CLK": "NC"
        },
         "RZ_A1H": {
              "SPI_MOSI": "P8_5",
@@ -175,16 +175,16 @@
             "SPI_CS":   "NC"
         },
         "MTB_MXCHIP_EMW3166": {
-            "SPI_MOSI": "NC",
-            "SPI_MISO": "NC",
-            "SPI_CLK":  "NC",
-            "SPI_CS":   "NC"
+            "SPI_MOSI": "PB_15",
+            "SPI_MISO": "PB_14",
+            "SPI_CLK":  "PB_13",
+            "SPI_CS":   "PA_12"
         },
         "MTB_USI_WM_BN_BM_22": {
-            "SPI_MOSI": "NC",
-            "SPI_MISO": "NC",
-            "SPI_CLK":  "NC",
-            "SPI_CS":   "NC"
+            "SPI_MOSI": "PC_3",
+            "SPI_MISO": "PC_2",
+            "SPI_CLK":  "PB_13",
+            "SPI_CS":   "PC_5"
         }
     }
 }
