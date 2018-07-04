@@ -587,6 +587,16 @@ bd_size_t SDBlockDevice::get_program_size() const
     return _block_size;
 }
 
+bd_size_t SDBlockDevice::get_erase_size() const
+{
+    return _erase_size;
+}
+
+bd_size_t SDBlockDevice::get_erase_size(bd_addr_t addr) const
+{
+    return _erase_size;
+}
+
 bd_size_t SDBlockDevice::size() const
 {
     return _block_size*_sectors;
