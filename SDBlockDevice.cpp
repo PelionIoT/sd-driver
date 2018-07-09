@@ -152,11 +152,11 @@
 #endif
 
 #ifndef MBED_CONF_SD_CMD_TIMEOUT
-#define MBED_CONF_SD_CMD_TIMEOUT                 5000   /*!< Timeout in ms for response */
+#define MBED_CONF_SD_CMD_TIMEOUT                 1200   /*!< Timeout in ms for response */
 #endif
 
 #ifndef MBED_CONF_SD_CMD0_IDLE_STATE_RETRIES
-#define MBED_CONF_SD_CMD0_IDLE_STATE_RETRIES     5      /*!< Number of retries for sending CMDO */
+#define MBED_CONF_SD_CMD0_IDLE_STATE_RETRIES     3      /*!< Number of retries for sending CMDO */
 #endif
 
 #ifndef MBED_CONF_SD_INIT_FREQUENCY
@@ -164,7 +164,14 @@
 #endif
 
 
-#define SD_COMMAND_TIMEOUT                       MBED_CONF_SD_CMD_TIMEOUT
+#define SD_COMMAND_TIMEOUT                       50
+// ACMD41 timeout should be more then 1 sec as per SD Specs
+#define ACMD41_TIMEOUT                           MBED_CONF_SD_CMD_TIMEOUT
+// Write timeout 250ms to 500 msec
+#define WRITE_TIMEOUT                            500
+// Erase timeout depends on mutliple of block sizes, we keep 5 sec
+#define ERASE_TIMEOUT                            5000
+
 #define SD_CMD0_GO_IDLE_STATE_RETRIES            MBED_CONF_SD_CMD0_IDLE_STATE_RETRIES
 #define SD_DBG                                   0      /*!< 1 - Enable debugging */
 #define SD_CMD_TRACE                             0      /*!< 1 - Enable SD command tracing */
@@ -327,7 +334,7 @@ int SDBlockDevice::_initialise_card()
     _spi_timer.start();
     do {
         status = _cmd(ACMD41_SD_SEND_OP_COND, arg, 1, &response);
-    } while ((response & R1_IDLE_STATE) && (_spi_timer.read_ms() < SD_COMMAND_TIMEOUT));
+    } while ((response & R1_IDLE_STATE) && (_spi_timer.read_ms() < ACMD41_TIMEOUT));
     _spi_timer.stop();
 
     // Initialization complete: ACMD41 successful
@@ -758,7 +765,7 @@ int SDBlockDevice::_cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAc
 
         case CMD12_STOP_TRANSMISSION:       // Response R1b
         case CMD38_ERASE:
-            _wait_ready(SD_COMMAND_TIMEOUT);
+            _wait_ready(ERASE_TIMEOUT);
             break;
 
         case ACMD13_SD_STATUS:             // Response R2
@@ -916,7 +923,7 @@ uint8_t SDBlockDevice::_write(const uint8_t *buffer, uint8_t token, uint32_t len
     response = _spi.write(SPI_FILL_CHAR);
 
     // Wait for last block to be written
-    if (false == _wait_ready(SD_COMMAND_TIMEOUT)) {
+    if (false == _wait_ready(WRITE_TIMEOUT)) {
         debug_if(SD_DBG, "Card not ready yet \n");
     }
 
