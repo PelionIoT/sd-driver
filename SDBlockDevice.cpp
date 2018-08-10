@@ -249,27 +249,50 @@
 #define SPI_READ_ERROR_OFR       (0x1 << 3)  /*!< Out of Range */
 
 SDBlockDevice::SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName cs, uint64_t hz, bool crc_on)
-    : _sectors(0), _spi(mosi, miso, sclk), _cs(cs), _is_initialized(0), 
-      _crc_on(crc_on), _crc16(0, 0, false, false)
+    : _sectors(0), _cs(cs, 1),
+	  _crc16(0, 0, false, false), _shared_bus(false)
 {
-    _cs = 1;
-    _card_type = SDCARD_NONE;
+	_spi = new SPI(mosi, miso, sclk);
+	_common_constructor(hz, crc_on);
+}
 
-    // Set default to 100kHz for initialisation and 1MHz for data transfer
-    MBED_STATIC_ASSERT(((MBED_CONF_SD_INIT_FREQUENCY >= 100000) && (MBED_CONF_SD_INIT_FREQUENCY <= 400000)),
-                       "Initialization frequency should be between 100KHz to 400KHz");
-    _init_sck = MBED_CONF_SD_INIT_FREQUENCY;
-    _transfer_sck = hz;
+SDBlockDevice::SDBlockDevice(SPI* spi, PinName cs, uint64_t hz, bool crc_on)
+	: _spi(spi), _cs(cs, 1),
+	  _crc16(0, 0, false, false), _shared_bus(true)
+{
+	_common_constructor(hz, crc_on);
+}
 
-    // Only HC block size is supported.
-    _block_size = BLOCK_SIZE_HC;
-    _erase_size = BLOCK_SIZE_HC;
+void SDBlockDevice::_common_constructor(uint64_t hz, bool crc_on)
+{
+	_is_initialized = 0;
+	_crc_on = crc_on;
+	_dbg = false;
+
+	_cs = 1; // Just to make sure
+
+	_card_type = SDCARD_NONE;
+
+	// Set default to 100kHz for initialisation and 1MHz for data transfer
+	MBED_STATIC_ASSERT(((MBED_CONF_SD_INIT_FREQUENCY >= 100000) && (MBED_CONF_SD_INIT_FREQUENCY <= 400000)),
+					   "Initialization frequency should be between 100KHz to 400KHz");
+	_init_sck = MBED_CONF_SD_INIT_FREQUENCY;
+	_transfer_sck = hz;
+
+	// Only HC block size is supported.
+	_block_size = BLOCK_SIZE_HC;
+	_erase_size = BLOCK_SIZE_HC;
 }
 
 SDBlockDevice::~SDBlockDevice()
 {
     if (_is_initialized) {
         deinit();
+    }
+
+    if(!_shared_bus) {
+    	// We made the bus, so we have to delete it
+    	delete _spi;
     }
 }
 
@@ -472,7 +495,7 @@ int SDBlockDevice::program(const void *b, bd_addr_t addr, bd_size_t size)
          * sending 'Stop Tran' token instead of 'Start Block' token at the beginning
          * of the next block
          */
-        _spi.write(SPI_STOP_TRAN);
+        _spi->write(SPI_STOP_TRAN);
     }
 
     _deselect();
@@ -611,11 +634,11 @@ int SDBlockDevice::_freq(void)
 {
     // Max frequency supported is 25MHZ
     if (_transfer_sck <= 25000000) {
-        _spi.frequency(_transfer_sck);
+        _spi->frequency(_transfer_sck);
         return 0;
     } else {  // TODO: Switch function to be implemented for higher frequency
         _transfer_sck = 25000000;
-        _spi.frequency(_transfer_sck);
+        _spi->frequency(_transfer_sck);
         return -EINVAL;
     }
 }
@@ -653,18 +676,18 @@ uint8_t SDBlockDevice::_cmd_spi(SDBlockDevice::cmdSupported cmd, uint32_t arg) {
 
     // send a command
     for (int i = 0; i < PACKET_SIZE; i++) {
-        _spi.write(cmdPacket[i]);
+        _spi->write(cmdPacket[i]);
     }
 
     // The received byte immediataly following CMD12 is a stuff byte,
     // it should be discarded before receive the response of the CMD12.
     if (CMD12_STOP_TRANSMISSION == cmd) {
-        _spi.write(SPI_FILL_CHAR);
+        _spi->write(SPI_FILL_CHAR);
     }
 
     // Loop for response: Response is sent back within command response time (NCR), 0 to 8 bytes for SDC
     for (int i = 0; i < 0x10; i++) {
-        response = _spi.write(SPI_FILL_CHAR);
+        response = _spi->write(SPI_FILL_CHAR);
         // Got the response
         if (!(response & R1_RESPONSE_RECV)) {
             break;
@@ -749,10 +772,10 @@ int SDBlockDevice::_cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAc
             _card_type = SDCARD_V2;
             // Note: No break here, need to read rest of the response
         case CMD58_READ_OCR:                // Response R3
-            response  = (_spi.write(SPI_FILL_CHAR) << 24);
-            response |= (_spi.write(SPI_FILL_CHAR) << 16);
-            response |= (_spi.write(SPI_FILL_CHAR) << 8);
-            response |= _spi.write(SPI_FILL_CHAR);
+            response  = (_spi->write(SPI_FILL_CHAR) << 24);
+            response |= (_spi->write(SPI_FILL_CHAR) << 16);
+            response |= (_spi->write(SPI_FILL_CHAR) << 8);
+            response |= _spi->write(SPI_FILL_CHAR);
             debug_if(_dbg, "R3/R7: 0x%x \n", response);
             break;
 
@@ -762,7 +785,7 @@ int SDBlockDevice::_cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAc
             break;
 
         case ACMD13_SD_STATUS:             // Response R2
-            response = _spi.write(SPI_FILL_CHAR);
+            response = _spi->write(SPI_FILL_CHAR);
             debug_if(_dbg, "R2: 0x%x \n", response);
             break;
 
@@ -837,12 +860,12 @@ int SDBlockDevice::_read_bytes(uint8_t *buffer, uint32_t length) {
 
     // read data
     for (uint32_t i = 0; i < length; i++) {
-        buffer[i] = _spi.write(SPI_FILL_CHAR);
+        buffer[i] = _spi->write(SPI_FILL_CHAR);
     }
 
     // Read the CRC16 checksum for the data block
-    crc = (_spi.write(SPI_FILL_CHAR) << 8);
-    crc |= _spi.write(SPI_FILL_CHAR);
+    crc = (_spi->write(SPI_FILL_CHAR) << 8);
+    crc |= _spi->write(SPI_FILL_CHAR);
 
     if (_crc_on) {
         uint32_t crc_result;
@@ -871,11 +894,11 @@ int SDBlockDevice::_read(uint8_t *buffer, uint32_t length) {
     }
 
     // read data
-    _spi.write(NULL, 0, (char*)buffer, length);
+    _spi->write(NULL, 0, (char*)buffer, length);
 
     // Read the CRC16 checksum for the data block
-    crc = (_spi.write(SPI_FILL_CHAR) << 8);
-    crc |= _spi.write(SPI_FILL_CHAR);
+    crc = (_spi->write(SPI_FILL_CHAR) << 8);
+    crc |= _spi->write(SPI_FILL_CHAR);
 
     if (_crc_on) {
         uint32_t crc_result;
@@ -897,10 +920,10 @@ uint8_t SDBlockDevice::_write(const uint8_t *buffer, uint8_t token, uint32_t len
     uint8_t response = 0xFF;
 
     // indicate start of block
-    _spi.write(token);
+    _spi->write(token);
 
     // write the data
-    _spi.write((char*)buffer, length, NULL, 0);
+    _spi->write((char*)buffer, length, NULL, 0);
 
     if (_crc_on) {
         // Compute CRC
@@ -908,12 +931,12 @@ uint8_t SDBlockDevice::_write(const uint8_t *buffer, uint8_t token, uint32_t len
     }
 
     // write the checksum CRC16
-    _spi.write(crc >> 8);
-    _spi.write(crc);
+    _spi->write(crc >> 8);
+    _spi->write(crc);
 
 
     // check the response token
-    response = _spi.write(SPI_FILL_CHAR);
+    response = _spi->write(SPI_FILL_CHAR);
 
     // Wait for last block to be written
     if (false == _wait_ready(SD_COMMAND_TIMEOUT)) {
@@ -1001,7 +1024,7 @@ bool SDBlockDevice::_wait_token(uint8_t token) {
     _spi_timer.start();
 
     do {
-        if (token == _spi.write(SPI_FILL_CHAR)) {
+        if (token == _spi->write(SPI_FILL_CHAR)) {
             _spi_timer.stop();
             return true;
         }
@@ -1018,7 +1041,7 @@ bool SDBlockDevice::_wait_ready(uint16_t ms) {
     _spi_timer.reset();
     _spi_timer.start();
     do {
-        response = _spi.write(SPI_FILL_CHAR);
+        response = _spi->write(SPI_FILL_CHAR);
         if (response == 0xFF) {
             _spi_timer.stop();
             return true;
@@ -1032,32 +1055,32 @@ bool SDBlockDevice::_wait_ready(uint16_t ms) {
 void SDBlockDevice::_spi_wait(uint8_t count)
 {
     for (uint8_t i = 0; i < count; ++i) {
-        _spi.write(SPI_FILL_CHAR);
+        _spi->write(SPI_FILL_CHAR);
     }
 }
 
 void SDBlockDevice::_spi_init() {
-    _spi.lock();
+    _spi->lock();
     // Set to SCK for initialization, and clock card with cs = 1
-    _spi.frequency(_init_sck);
-    _spi.format(8, 0);
-    _spi.set_default_write_value(SPI_FILL_CHAR);
+    _spi->frequency(_init_sck);
+    _spi->format(8, 0);
+    _spi->set_default_write_value(SPI_FILL_CHAR);
     // Initial 74 cycles required for few cards, before selecting SPI mode
     _cs = 1;
     _spi_wait(10);
-    _spi.unlock();
+    _spi->unlock();
 }
 
 void SDBlockDevice::_select() {
-    _spi.lock();
-    _spi.write(SPI_FILL_CHAR);
+    _spi->lock();
+    _spi->write(SPI_FILL_CHAR);
     _cs = 0;
 }
 
 void SDBlockDevice::_deselect() {
     _cs = 1;
-    _spi.write(SPI_FILL_CHAR);
-    _spi.unlock();
+    _spi->write(SPI_FILL_CHAR);
+    _spi->unlock();
 }
 
 #endif  /* DEVICE_SPI */

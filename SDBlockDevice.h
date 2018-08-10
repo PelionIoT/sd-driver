@@ -46,6 +46,20 @@ public:
     /** Lifetime of an SD card
      */
     SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName cs, uint64_t hz=1000000, bool crc_on=0);
+
+    /**
+     * Shared SPI bus constructor
+     *
+     * @note If the SPI bus is shared with other peripherals,
+     * care should be taken to allow the SD card to initialize properly.
+     * The initialization process requires the starting clock frequency
+     * to be between 100kHz and 400kHz before faster speeds can be
+     * used (depending on SD card support)
+     *
+     * It may be a good idea to initialize the SD card first
+     */
+    SDBlockDevice(SPI* spi, PinName cs, uint64_t hz=1000000, bool crc_on=0);
+
     virtual ~SDBlockDevice();
 
     /** Initialize a block device
@@ -167,6 +181,8 @@ private:
         ACMD51_SEND_SCR = 51,
     };
 
+    void _common_constructor(uint64_t hz, bool crc_on);
+
     uint8_t _card_type;
     int _cmd(SDBlockDevice::cmdSupported cmd, uint32_t arg, bool isAcmd=0, uint32_t *resp=NULL);
     int _cmd8();
@@ -193,7 +209,7 @@ private:
     Timer _spi_timer;               /**< Timer Class object used for busy wait */
     uint32_t _init_sck;             /**< Intial SPI frequency */
     uint32_t _transfer_sck;         /**< SPI frequency during data transfer/after initialization */
-    SPI _spi;                       /**< SPI Class object */
+    SPI* _spi;                       /**< SPI Class object */
 
     /* SPI initialization function */
     void _spi_init();
@@ -226,6 +242,7 @@ private:
     bool _is_initialized;
     bool _dbg;
     bool _crc_on;
+    bool _shared_bus;
 
     MbedCRC<POLY_7BIT_SD, 7> _crc7;
     MbedCRC<POLY_16BIT_CCITT, 16> _crc16;
