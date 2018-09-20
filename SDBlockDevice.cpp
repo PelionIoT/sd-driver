@@ -151,6 +151,12 @@
 #warning "mbed-os version 5.9.0 or above required"
 #endif
 
+/* Started from version 5.10.0 SDBlockDevice external repo is depricated. 
+   please use the SDBlockDevice component inside mbed-os.*/
+#if defined(MBED_MAJOR_VERSION) && MBED_MAJOR_VERSION >= 5 && (MBED_VERSION >= MBED_ENCODE_VERSION(5,10,0))
+#error "Started from version 5.10.0 SDBlockDevice external repo is depricated. please use the SDBlockDevice component inside mbed-os."
+#endif
+
 #ifndef MBED_CONF_SD_CMD_TIMEOUT
 #define MBED_CONF_SD_CMD_TIMEOUT                 5000   /*!< Timeout in ms for response */
 #endif
