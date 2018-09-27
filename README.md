@@ -1,6 +1,11 @@
 # mbed OS SDCard Driver (sd-driver) for FAT32 Filesystem Support
 
 
+# Warning
+Starting from mbed-os 5.10 this repository is deprecated. 
+Please refer to mbed-os 5.10 [documentation](https://github.com/ARMmbed/mbed-os-5-docs/blob/development/docs/api/storage/SDBlockDevice.md) and [code](https://github.com/ARMmbed/mbed-os/tree/master/components/storage/blockdevice/COMPONENT_SD) for more detail regarding how to enable SD support.
+
+
 Simon Hughes
 
 20170329
