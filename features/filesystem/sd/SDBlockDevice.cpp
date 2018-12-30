@@ -597,4 +597,9 @@ uint32_t SDBlockDevice::_sd_sectors() {
     return blocks;
 }
 
+const char *SDBlockDevice::get_type() const
+{
+   return "SD";
+}
+
 #endif  /* DEVICE_SPI */

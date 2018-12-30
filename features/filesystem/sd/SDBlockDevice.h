@@ -126,6 +126,12 @@ public:
      *  @param          State of debugging
      */
     virtual void debug(bool dbg);
+    
+    /** Get the BlockDevice class type.
+     *
+     *  @return         A string represent the BlockDevice class type.
+     */
+    virtual const char *get_type() const;
 
 private:
     int _cmd(int cmd, int arg);
