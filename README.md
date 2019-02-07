@@ -3,14 +3,10 @@
 
 # Warning
 Starting from mbed-os 5.10 this repository is deprecated. 
+
+Note: SD Driver is now part of mbed-os. Use "components_add": ["SD"] for your target at mbed-os target.json
+
 Please refer to mbed-os 5.10 [documentation](https://github.com/ARMmbed/mbed-os-5-docs/blob/development/docs/api/storage/SDBlockDevice.md) and [code](https://github.com/ARMmbed/mbed-os/tree/master/components/storage/blockdevice/COMPONENT_SD) for more detail regarding how to enable SD support.
-
-
-Simon Hughes
-
-20170329
-
-Version 0.1.2
 
 
 # Executive Summary
